@@ -21,10 +21,10 @@ def load_data(session):
 
 def clean_dataframe(df):
     return df.where(
-        df['item_sold'].isNotNull() & df['pid'].isNotNull() & \
-        df['pid'].isNotNull() & df['price'].isNotNull() & \
-        df['title'].isNotNull() & df['url'].isNotNull() & \
-        ~df['item_sold'].like("http%") & \
+        df['item_sold'].isNotNull() & df['pid'].isNotNull() &
+        df['pid'].isNotNull() & df['price'].isNotNull() &
+        df['title'].isNotNull() & df['url'].isNotNull() &
+        ~df['item_sold'].like("http%") &
         df['url'].like("http%")
     )
 
@@ -48,6 +48,7 @@ def extract_dataframe(df):
     df = df.withColumn('seller', extract_seller(df.url))
     df = df.withColumn('seller_url', extract_seller_url(df.seller))
     df = df.withColumn('item_sold', df.item_sold.cast("int"))
+    df = df.withColumn('pid', df.pid.cast("int"))
     df = df.withColumn('price', price(df.price))
     return df
 
@@ -100,19 +101,23 @@ def seller_to_dict(df):
     return result
 
 
-if __name__ == '__main__':
+def prepare_data():
     sess = get_session()
     load = load_data(sess)
     clean = clean_dataframe(load)
-    extract = extract_dataframe(clean)
+    return extract_dataframe(clean)
 
-    total_transaction = get_total_transaction(extract)
-    total_omset = get_omset(extract)
-    total_seller = get_total_seller(extract)
-    total_selling = get_total_product(extract)
 
-    best_selling = get_best_selling(extract).limit(10)
-    best_seller = get_best_seller(extract).limit(10)
+if __name__ == '__main__':
+    data = prepare_data()
+
+    total_transaction = get_total_transaction(data)
+    total_omset = get_omset(data)
+    total_seller = get_total_seller(data)
+    total_selling = get_total_product(data)
+
+    best_selling = get_best_selling(data).limit(10)
+    best_seller = get_best_seller(data).limit(10)
 
     item = {
         "date": str(date.today()),
