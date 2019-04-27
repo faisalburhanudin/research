@@ -4,3 +4,4 @@ dataset/
 .idea
 .venv
 .env
+__pycache__
