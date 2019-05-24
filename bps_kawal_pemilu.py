@@ -1,3 +1,4 @@
+# %%
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ def crawl_data(url, second=5):
     # specify the url
 
     # The path to where you have your chrome webdriver stored:
-    webdriver_path = '/usr/bin/chromedriver'
+    webdriver_path = '/usr/local/bin/chromedriver'
 
     # Add arguments telling Selenium to not actually open a window
     chrome_options = Options()
@@ -51,13 +52,13 @@ def get_bps():
         'penduduk-indonesia-menurut-provinsi-1971-1980-1990-1995-2000-dan-2010.html'
     )
 
-    df = pd.DataFrame(columns=['wilayah', '1971', '1980', '1990', '1995', '2000', '2010'])
+    bps = pd.DataFrame(columns=['wilayah', '1971', '1980', '1990', '1995', '2000', '2010'])
 
     # find results within table
     for r in soup.find_all('table')[2].find_all('tr', {'class': 'xl6310505'})[1:-3]:
         value = r.find_all('td', {'class', 'xl7610505'})
 
-        df = df.append({
+        bps = bps.append({
             'wilayah': r.find('td', {'class', 'xl6810505'}).get_text().replace('\n', '').replace('  ', ' ').lower(),
             '1971': extract_data_penduduk(value[0].get_text()),
             '1980': extract_data_penduduk(value[1].get_text()),
@@ -67,9 +68,13 @@ def get_bps():
             '2010': extract_data_penduduk(value[5].get_text())
         }, ignore_index=True)
 
-    return df
+    return bps
 
 
+data_bps = get_bps()
+
+
+# %%
 def get_kawal_pemilu():
     soup2 = crawl_data('https://kawalpemilu.org/#0', second=10)
 
@@ -77,7 +82,7 @@ def get_kawal_pemilu():
     results2 = soup2.find('table', {'class': 'table'})
     rows2 = results2.find_all('tr', {'class': 'row'})
 
-    df = pd.DataFrame(columns=['wilayah', 'jokowi', 'prabowo'])
+    kawal = pd.DataFrame(columns=['wilayah', 'jokowi', 'prabowo'])
 
     for r in rows2:
         # find all columns per result
@@ -95,22 +100,50 @@ def get_kawal_pemilu():
         satu = int(satu)
         dua = int(dua)
 
-        df = df.append({
+        kawal = kawal.append({
             'wilayah': data[1].find('a').getText().lower(),
             'jokowi': satu,
             'prabowo': dua
         }, ignore_index=True)
 
-    return df
+    return kawal
 
 
-provinsi = [
-    'aceh', 'sumatera utara', 'sumatera barat', 'riau',
-    'jambi', 'sumatera selatan', 'bengkulu', 'lampung'
-]
-
-data_bps = get_bps()
-
-# %%
 data_kawal = get_kawal_pemilu()
 
+
+# %%
+def calculate_pemilih(bps, kawal):
+    provinsi = ['aceh', 'sumatera utara', 'sumatera barat', 'riau',
+                'jambi', 'sumatera selatan', 'bengkulu', 'lampung']
+
+    # ambil data bps yang ada di provinsi sumatra
+    bps = bps[bps['wilayah'].isin(provinsi)]
+
+    # ambil 2010
+    penduduk = pd.DataFrame({
+        'wilayah': bps['wilayah'],
+        'penduduk': bps['2010'].astype('int')
+    })
+
+    # ambil data kawal pemilu dari provinsi sumatra
+    kawal = kawal[kawal['wilayah'].isin(provinsi)]
+
+    # jumlahkan pemilih
+    jumlah_pemilih = kawal['jokowi'] + kawal['prabowo']
+
+    pemilih = pd.DataFrame({
+        'wilayah': kawal['wilayah'],
+        'pemilih': jumlah_pemilih.astype('int')
+    })
+
+    return pd.merge(penduduk, pemilih, on='wilayah')
+
+
+df = calculate_pemilih(data_bps, data_kawal)
+
+# %%
+# plot golput
+df.plot.bar(x='wilayah', y=['penduduk', 'pemilih'])
+plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+plt.show()
