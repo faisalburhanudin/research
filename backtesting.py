@@ -43,7 +43,7 @@ def get_stock(symbol: str, start: str = None, end: str = None) -> pd.DataFrame:
     return df
 
 
-stock = get_stock('BBRI', '2017-01-01')
+stock = get_stock('BBRI', '2000-01-01')
 
 
 # %%
@@ -93,7 +93,7 @@ def golden(stock_df: pd.DataFrame):
         money += 1_000_000
         buy_share = 0
 
-        if not np.isnan(value.MA50) and not np.isnan(value.MA50):
+        if not np.isnan(value.MA50) and not np.isnan(value.MA200):
 
             # price per lot
             per_lot = value.Close * 100
@@ -115,7 +115,7 @@ def golden(stock_df: pd.DataFrame):
                 own_share = get_owned_share([i[3] for i in record])
                 if own_share:
                     buy_share = -own_share
-                    money += own_share * per_lot * 100
+                    money += own_share * value.Close
 
         record.append((value.DateTime, money, value.Close, buy_share, value.MA50, value.MA200))
 
@@ -142,11 +142,12 @@ golden_df = golden(stock)
 # %%
 final = pd.DataFrame({
     'DateTime': record_df['DateTime'],
+    'Close': record_df['Close'],
     'buy and hold': record_df['Value'],
-    'golden cross': golden_df['Value']
+    'golden cross': golden_df['Value'],
 })
 
-final.plot.line(x='DateTime', y=['buy and hold', 'golden cross'])
+final.plot.line(x='DateTime', y=['golden cross', 'buy and hold'])
 ax = plt.gca()
 ax.ticklabel_format(style='plain', axis='y')
 plt.show()
