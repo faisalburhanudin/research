@@ -145,11 +145,11 @@ final = pd.DataFrame({
     'Close': record_df['Close'],
     'hold': record_df['SumShare'],
     'gold': golden_df['SumShare'],
-    'buy and hold': record_df['Value'],
-    'golden cross': golden_df['Value'],
+    'reality': record_df['Value'],
+    'idea': golden_df['Value'],
 })
 
-final.plot.line(x='DateTime', y=['hold', 'gold'])
+final.plot.line(x='DateTime', y=['reality', 'idea'])
 ax = plt.gca()
 ax.ticklabel_format(style='plain', axis='y')
 plt.show()
